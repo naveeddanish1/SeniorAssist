@@ -1,4 +1,8 @@
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+} from "firebase/auth";
+
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 
@@ -37,4 +41,14 @@ export async function registerUser({
   });
 
   return user;
+}
+
+export async function loginUser(email: string, password: string) {
+  const userCredential = await signInWithEmailAndPassword(
+    auth,
+    email.trim(),
+    password,
+  );
+
+  return userCredential.user;
 }
