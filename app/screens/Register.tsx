@@ -1,15 +1,16 @@
 import { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { registerUser } from "../../services/authService";
 
 type UserRole = "Senior" | "Helper" | "Family";
 
@@ -26,7 +27,7 @@ export default function Register() {
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleCreateAccount = () => {
+  const handleCreateAccount = async () => {
     setMessage("");
     setIsSuccess(false);
 
@@ -62,10 +63,29 @@ export default function Register() {
       return;
     }
 
-    setIsSuccess(true);
-    setMessage(`Account created successfully. Welcome, ${name}!`);
-  };
+    try {
+      await registerUser({
+        name,
+        email,
+        phone,
+        password,
+        role,
+      });
 
+      setIsSuccess(true);
+      setMessage("🎉 Account created successfully!");
+
+      setName("");
+      setEmail("");
+      setPhone("");
+      setPassword("");
+      setConfirmPassword("");
+      setRole(null);
+      setAgreedToTerms(false);
+    } catch (error: any) {
+      setMessage(error.message);
+    }
+  };
   return (
     <KeyboardAvoidingView
       style={styles.page}
