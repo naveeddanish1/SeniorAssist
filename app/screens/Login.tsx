@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { loginUser } from "../../services/authService";
+import { getUserRole, loginUser } from "../../services/authService";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -33,9 +33,21 @@ export default function Login() {
       setLoading(true);
 
       const user = await loginUser(email, password);
+      const role = await getUserRole(user.uid);
 
       setIsSuccess(true);
       setMessage(`Welcome back! ${user.email}`);
+
+      if (role === "Senior") {
+        router.replace("/screens/SeniorDashboard");
+      } else if (role === "Helper") {
+        router.replace("/screens/HelperDashboard");
+      } else if (role === "Family") {
+        router.replace("/screens/FamilyDashboard");
+      } else {
+        setIsSuccess(false);
+        setMessage("Your account role is not recognized.");
+      }
     } catch (error: any) {
       setIsSuccess(false);
 
