@@ -46,6 +46,31 @@ export async function getPendingHelpRequests(): Promise<HelpRequest[]> {
   }));
 }
 
+export async function getAcceptedHelpRequests(): Promise<HelpRequest[]> {
+  const currentUser = auth.currentUser;
+
+  if (!currentUser) {
+    throw new Error("You must be logged in as a helper.");
+  }
+
+  const requestsQuery = query(
+    collection(db, "helpRequests"),
+    where("helperId", "==", currentUser.uid),
+  );
+
+  const requestSnapshot = await getDocs(requestsQuery);
+
+  const requests = requestSnapshot.docs.map((requestDocument) => ({
+    id: requestDocument.id,
+    ...(requestDocument.data() as Omit<HelpRequest, "id">),
+  }));
+
+  return requests.filter(
+    (request) =>
+      request.status === "Accepted" || request.status === "In Progress",
+  );
+}
+
 export type UserRole = "Senior" | "Helper" | "Family";
 
 type RegisterUserData = {
@@ -150,5 +175,23 @@ export async function acceptHelpRequest(requestId: string) {
     status: "Accepted",
     helperId: currentUser.uid,
     acceptedAt: serverTimestamp(),
+  });
+}
+
+export async function startHelpRequest(requestId: string) {
+  const requestReference = doc(db, "helpRequests", requestId);
+
+  await updateDoc(requestReference, {
+    status: "In Progress",
+    startedAt: serverTimestamp(),
+  });
+}
+
+export async function completeHelpRequest(requestId: string) {
+  const requestReference = doc(db, "helpRequests", requestId);
+
+  await updateDoc(requestReference, {
+    status: "Completed",
+    completedAt: serverTimestamp(),
   });
 }
