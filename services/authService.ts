@@ -25,12 +25,81 @@ export async function logoutUser() {
 export type HelpRequest = {
   id: string;
   seniorId: string;
+  helperId?: string;
+  helperName?: string;
   requestType: string;
   description: string;
   preferredDate: string;
   preferredTime: string;
   status: string;
 };
+
+export type ChatMessage = {
+  id: string;
+  requestId: string;
+  senderId: string;
+  senderName: string;
+  message: string;
+  createdAt?: unknown;
+};
+
+export async function sendChatMessage(requestId: string, message: string) {
+  const currentUser = auth.currentUser;
+
+  if (!currentUser) {
+    throw new Error("You must be logged in to send a message.");
+  }
+
+  const trimmedMessage = message.trim();
+
+  if (!trimmedMessage) {
+    throw new Error("Message cannot be empty.");
+  }
+
+  const userDocument = await getDoc(doc(db, "users", currentUser.uid));
+
+  if (!userDocument.exists()) {
+    throw new Error("User profile was not found.");
+  }
+
+  const userData = userDocument.data();
+
+  await addDoc(collection(db, "chatMessages"), {
+    requestId,
+    senderId: currentUser.uid,
+    senderName: userData.name ?? "User",
+    message: trimmedMessage,
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function getChatMessages(
+  requestId: string,
+): Promise<ChatMessage[]> {
+  const messagesQuery = query(
+    collection(db, "chatMessages"),
+    where("requestId", "==", requestId),
+  );
+
+  const messageSnapshot = await getDocs(messagesQuery);
+
+  const messages = messageSnapshot.docs.map((messageDocument) => ({
+    id: messageDocument.id,
+    ...(messageDocument.data() as Omit<ChatMessage, "id">),
+  }));
+
+  return messages.sort((firstMessage, secondMessage) => {
+    const firstTime =
+      (firstMessage.createdAt as { seconds?: number } | undefined)?.seconds ??
+      0;
+
+    const secondTime =
+      (secondMessage.createdAt as { seconds?: number } | undefined)?.seconds ??
+      0;
+
+    return firstTime - secondTime;
+  });
+}
 
 export async function getPendingHelpRequests(): Promise<HelpRequest[]> {
   const requestsQuery = query(
@@ -191,11 +260,20 @@ export async function acceptHelpRequest(requestId: string) {
     throw new Error("You must be logged in as a helper.");
   }
 
+  const helperDocument = await getDoc(doc(db, "users", currentUser.uid));
+
+  if (!helperDocument.exists()) {
+    throw new Error("Helper profile was not found.");
+  }
+
+  const helperData = helperDocument.data();
+
   const requestReference = doc(db, "helpRequests", requestId);
 
   await updateDoc(requestReference, {
     status: "Accepted",
     helperId: currentUser.uid,
+    helperName: helperData.name,
     acceptedAt: serverTimestamp(),
   });
 }

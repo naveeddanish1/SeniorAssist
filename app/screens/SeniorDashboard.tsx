@@ -2,6 +2,7 @@ import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -92,6 +93,27 @@ export default function SeniorDashboard() {
           >
             Status: {request.status}
           </Text>
+          {request.status === "Pending" ? (
+            <Text style={styles.helperText}>Waiting for a helper...</Text>
+          ) : request.helperName ? (
+            <Text style={styles.helperText}>Helper: {request.helperName}</Text>
+          ) : (
+            <Text style={styles.helperText}>Helper assigned</Text>
+          )}
+
+          {request.status !== "Pending" && (
+            <Pressable
+              style={styles.chatButton}
+              onPress={() =>
+                router.push({
+                  pathname: "/screens/ChatScreen",
+                  params: { requestId: request.id },
+                })
+              }
+            >
+              <Text style={styles.chatButtonText}>Chat with Helper</Text>
+            </Pressable>
+          )}
         </View>
       ))}
 
@@ -230,6 +252,27 @@ const styles = StyleSheet.create({
   refreshButtonText: {
     color: "#1f6feb",
     fontSize: 16,
+    fontWeight: "bold",
+  },
+
+  helperText: {
+    fontSize: 15,
+    color: "#555",
+    marginTop: 8,
+  },
+
+  chatButton: {
+    backgroundColor: "#1976d2",
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+    alignSelf: "flex-start",
+  },
+
+  chatButtonText: {
+    color: "#ffffff",
+    fontSize: 15,
     fontWeight: "bold",
   },
 });
