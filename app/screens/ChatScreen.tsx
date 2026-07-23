@@ -16,8 +16,8 @@ import {
 
 import {
     ChatMessage,
-    getChatMessages,
     sendChatMessage,
+    subscribeToChatMessages,
 } from "../../services/authService";
 
 export default function ChatScreen() {
@@ -30,29 +30,29 @@ export default function ChatScreen() {
 
   const currentUserId = getAuth().currentUser?.uid;
 
-  const loadMessages = useCallback(async () => {
-    if (!requestId) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const loadedMessages = await getChatMessages(requestId);
-      setMessages(loadedMessages);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unable to load messages.";
-
-      Alert.alert("Chat Error", errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [requestId]);
-
   useFocusEffect(
     useCallback(() => {
-      loadMessages();
-    }, [loadMessages]),
+      if (!requestId) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+
+      const unsubscribe = subscribeToChatMessages(
+        requestId,
+        (updatedMessages) => {
+          setMessages(updatedMessages);
+          setLoading(false);
+        },
+        (error) => {
+          Alert.alert("Chat Error", error.message);
+          setLoading(false);
+        },
+      );
+
+      return unsubscribe;
+    }, [requestId]),
   );
 
   async function handleSendMessage() {
@@ -66,7 +66,6 @@ export default function ChatScreen() {
       await sendChatMessage(requestId, newMessage);
 
       setNewMessage("");
-      await loadMessages();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unable to send message.";

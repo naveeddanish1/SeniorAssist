@@ -10,6 +10,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   query,
   serverTimestamp,
   setDoc,
@@ -99,6 +100,44 @@ export async function getChatMessages(
 
     return firstTime - secondTime;
   });
+}
+
+export function subscribeToChatMessages(
+  requestId: string,
+  onMessagesChanged: (messages: ChatMessage[]) => void,
+  onError: (error: Error) => void,
+) {
+  const messagesQuery = query(
+    collection(db, "chatMessages"),
+    where("requestId", "==", requestId),
+  );
+
+  return onSnapshot(
+    messagesQuery,
+    (messageSnapshot) => {
+      const messages = messageSnapshot.docs.map((messageDocument) => ({
+        id: messageDocument.id,
+        ...(messageDocument.data() as Omit<ChatMessage, "id">),
+      }));
+
+      const sortedMessages = messages.sort((firstMessage, secondMessage) => {
+        const firstTime =
+          (firstMessage.createdAt as { seconds?: number } | undefined)
+            ?.seconds ?? 0;
+
+        const secondTime =
+          (secondMessage.createdAt as { seconds?: number } | undefined)
+            ?.seconds ?? 0;
+
+        return firstTime - secondTime;
+      });
+
+      onMessagesChanged(sortedMessages);
+    },
+    (error) => {
+      onError(error);
+    },
+  );
 }
 
 export async function getPendingHelpRequests(): Promise<HelpRequest[]> {

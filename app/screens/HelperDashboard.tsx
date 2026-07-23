@@ -1,6 +1,8 @@
+import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -162,6 +164,18 @@ export default function HelperDashboard() {
               <Text style={styles.completedText}>✅ Job Completed</Text>
             </View>
           )}
+
+          <Pressable
+            style={styles.chatButton}
+            onPress={() =>
+              router.push({
+                pathname: "/screens/ChatScreen",
+                params: { requestId: request.id },
+              })
+            }
+          >
+            <Text style={styles.chatButtonText}>Open Chat</Text>
+          </Pressable>
         </View>
       ))}
 
@@ -330,5 +344,19 @@ const styles = StyleSheet.create({
     color: "#15803d",
     fontWeight: "bold",
     fontSize: 17,
+  },
+
+  chatButton: {
+    backgroundColor: "#1976d2",
+    paddingVertical: 11,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 10,
+  },
+
+  chatButtonText: {
+    color: "#ffffff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
