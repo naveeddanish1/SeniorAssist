@@ -41,7 +41,11 @@ export type ChatMessage = {
   senderId: string;
   senderName: string;
   message: string;
-  createdAt?: unknown;
+  createdAt?: {
+    seconds?: number;
+    nanoseconds?: number;
+    toDate?: () => Date;
+  };
 };
 
 export async function sendChatMessage(requestId: string, message: string) {
@@ -100,6 +104,19 @@ export async function getChatMessages(
 
     return firstTime - secondTime;
   });
+}
+
+export async function getHelpRequestById(requestId: string) {
+  const requestDocument = await getDoc(doc(db, "helpRequests", requestId));
+
+  if (!requestDocument.exists()) {
+    throw new Error("Help request not found.");
+  }
+
+  return {
+    id: requestDocument.id,
+    ...requestDocument.data(),
+  };
 }
 
 export function subscribeToChatMessages(

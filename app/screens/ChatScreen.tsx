@@ -1,6 +1,6 @@
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { getAuth } from "firebase/auth";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -16,6 +16,7 @@ import {
 
 import {
     ChatMessage,
+    getHelpRequestById,
     sendChatMessage,
     subscribeToChatMessages,
 } from "../../services/authService";
@@ -24,11 +25,35 @@ export default function ChatScreen() {
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [request, setRequest] = useState<any>(null);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
   const currentUserId = getAuth().currentUser?.uid;
+
+  const flatListRef = useRef<FlatList<ChatMessage>>(null);
+
+  function formatMessageTime(createdAt: ChatMessage["createdAt"]) {
+    if (!createdAt) {
+      return "";
+    }
+
+    let messageDate: Date;
+
+    if (typeof createdAt.toDate === "function") {
+      messageDate = createdAt.toDate();
+    } else if (createdAt.seconds) {
+      messageDate = new Date(createdAt.seconds * 1000);
+    } else {
+      return "";
+    }
+
+    return messageDate.toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -36,6 +61,20 @@ export default function ChatScreen() {
         setLoading(false);
         return;
       }
+
+      async function loadRequest() {
+        try {
+          const helpRequest = await getHelpRequestById(requestId);
+          setRequest(helpRequest);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unable to load request.";
+
+          Alert.alert("Request Error", errorMessage);
+        }
+      }
+
+      loadRequest();
 
       setLoading(true);
 
@@ -90,7 +129,11 @@ export default function ChatScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={90}
     >
-      <Text style={styles.title}>Request Chat</Text>
+      <Text style={styles.title}>{request?.requestType ?? "Request Chat"}</Text>
+
+      {request && (
+        <Text style={styles.requestStatus}>Status: {request.status}</Text>
+      )}
 
       {loading ? (
         <View style={styles.centerContainer}>
@@ -99,8 +142,12 @@ export default function ChatScreen() {
         </View>
       ) : (
         <FlatList
+          ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
+          onContentSizeChange={() =>
+            flatListRef.current?.scrollToEnd({ animated: true })
+          }
           contentContainerStyle={styles.messageList}
           ListEmptyComponent={
             <Text style={styles.emptyText}>
@@ -124,6 +171,10 @@ export default function ChatScreen() {
                 </Text>
 
                 <Text style={styles.messageText}>{item.message}</Text>
+
+                <Text style={styles.messageTime}>
+                  {formatMessageTime(item.createdAt)}
+                </Text>
               </View>
             );
           }}
@@ -168,6 +219,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 15,
   },
+
+  requestStatus: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 12,
+  },
+
   centerContainer: {
     flex: 1,
     alignItems: "center",
@@ -216,6 +275,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#222",
   },
+
+  messageTime: {
+    fontSize: 11,
+    color: "#666",
+    marginTop: 5,
+    alignSelf: "flex-end",
+  },
+
   inputContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
