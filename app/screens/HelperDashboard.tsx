@@ -120,7 +120,7 @@ export default function HelperDashboard() {
         </View>
       ))}
 
-      <Text style={styles.sectionTitle}>My Accepted Jobs</Text>
+      <Text style={styles.sectionTitle}>My Assigned Jobs</Text>
 
       {!loading && acceptedRequests.length === 0 ? (
         <Text style={styles.emptyMessage}>

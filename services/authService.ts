@@ -67,8 +67,30 @@ export async function getAcceptedHelpRequests(): Promise<HelpRequest[]> {
 
   return requests.filter(
     (request) =>
-      request.status === "Accepted" || request.status === "In Progress",
+      request.status === "Accepted" ||
+      request.status === "In Progress" ||
+      request.status === "Completed",
   );
+}
+
+export async function getSeniorHelpRequests(): Promise<HelpRequest[]> {
+  const currentUser = auth.currentUser;
+
+  if (!currentUser) {
+    throw new Error("You must be logged in as a senior.");
+  }
+
+  const requestsQuery = query(
+    collection(db, "helpRequests"),
+    where("seniorId", "==", currentUser.uid),
+  );
+
+  const requestSnapshot = await getDocs(requestsQuery);
+
+  return requestSnapshot.docs.map((requestDocument) => ({
+    id: requestDocument.id,
+    ...(requestDocument.data() as Omit<HelpRequest, "id">),
+  }));
 }
 
 export type UserRole = "Senior" | "Helper" | "Family";

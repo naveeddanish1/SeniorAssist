@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import {
     ScrollView,
@@ -43,6 +44,10 @@ export default function RequestHelp() {
       setDescription("");
       setPreferredDate("");
       setPreferredTime("");
+
+      setTimeout(() => {
+        router.replace("/screens/SeniorDashboard");
+      }, 1200);
     } catch (error: any) {
       setMessage(error.message || "Unable to submit the request.");
     }
